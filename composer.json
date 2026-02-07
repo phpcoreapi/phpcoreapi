@@ -2,6 +2,7 @@
   "name": "phpcoreapi/phpcoreapi",
   "description": "PHP Core API CLI to create PHP API projects with routing, controllers, and database setup",
   "type": "library",
+  "version": "2.0.0",
   "license": "MIT",
   "authors": [
     {
