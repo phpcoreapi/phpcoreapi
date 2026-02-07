@@ -2,7 +2,7 @@
   "name": "phpcoreapi/phpcoreapi",
   "description": "PHP Core API CLI to create PHP API projects with routing, controllers, and database setup",
   "type": "library",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "license": "MIT",
   "authors": [
     {
@@ -20,6 +20,6 @@
     "bin/phpcoreapi.bat"
   ],
   "require": {
-    "php": ">=8.0"
+    "php": ">=7.4"
   }
 }

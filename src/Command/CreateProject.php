@@ -20,13 +20,28 @@ class CreateProject
             exit;
         }
 
-        mkdir($name);
-        foreach (['app/Controllers', 'app/Core', 'app/Routes', 'public', 'config'] as $d) {
+        foreach (['app/Controllers', 'app/Core', 'app/Routes', 'public'] as $d) {
             mkdir("$name/$d", 0777, true);
         }
 
+        $vendor = "phpcoreapi";
+        $package = strtolower($name);
+        $composerJson = [
+            "name" => "$vendor/$package",
+            "description" => "A PHP Core API project",
+            "type" => "project",
+            "require" => [
+                "php" => ">=7.4"
+            ],
+            "autoload" => [
+                "psr-4" => [
+                    "App\\" => "app/"
+                ]
+            ]
+        ];
+        file_put_contents("$name/composer.json", json_encode($composerJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
         $files = [
-            'composer.json',
             'index.php',
             'web.php',
             'HealthController.php',

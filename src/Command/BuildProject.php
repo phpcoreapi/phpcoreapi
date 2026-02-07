@@ -14,11 +14,10 @@ class BuildProject
         if (is_dir($dist)) $this->delete($dist);
         mkdir($dist);
 
-        $items = ['app', 'public', 'config', 'phpcoreapi_setup.md', 'composer.json'];
+        $items = ['app', 'public', 'composer.json'];
 
         foreach ($items as $item) {
-            $destination = $item === 'phpcoreapi_setup.md' ? "$dist/README.md" : "$dist/$item";
-            $this->copyRecursive($item, $destination);
+            $this->copyRecursive($item, "$dist/$item");
         }
 
         chdir($dist);
