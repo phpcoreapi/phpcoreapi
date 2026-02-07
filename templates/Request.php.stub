@@ -5,13 +5,13 @@ class Request
 {
     public static function JsonBody(): string
     {
-        $raw = file_get_contents('php://input');
-        return $raw ?: '{}';
+        return file_get_contents('php://input') ?: '{}';
     }
 
     public static function JsonData(): array
     {
-        $data = json_decode(self::JsonBody(), true);
+        $json = self::JsonBody();
+        $data = json_decode($json, true);
         return is_array($data) ? $data : [];
     }
 
@@ -23,5 +23,20 @@ class Request
     public static function PostData(): array
     {
         return $_POST;
+    }
+
+    public static function Headers(): array
+    {
+        $headers = [];
+        foreach (getallheaders() as $key => $value) {
+            $headers[strtolower($key)] = $value;
+        }
+        return $headers;
+    }
+
+    public static function Header(string $name): ?string
+    {
+        $headers = self::Headers();
+        return $headers[strtolower($name)] ?? null;
     }
 }
