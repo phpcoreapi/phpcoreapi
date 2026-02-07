@@ -14,7 +14,10 @@
       "PhpCore\\": "src/"
     }
   },
-  "bin": ["bin/phpcoreapi"],
+  "bin": [
+    "bin/phpcoreapi",
+    "bin/phpcoreapi.bat"
+  ],
   "require": {
     "php": ">=8.0"
   }
