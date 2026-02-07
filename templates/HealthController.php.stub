@@ -1,0 +1,24 @@
+<?php
+namespace App\Controllers;
+
+use App\Core\Database;
+use App\Core\Request;
+
+class HealthController
+{
+    private $_db;
+
+    public function __construct()
+    {
+        $this->_db = Database::connect();
+    }
+
+    public function index()
+    {
+        echo json_encode([
+            'status' => 'ok',
+            'time' => time(),
+            'raw' => Request::JsonBody()
+        ]);
+    }
+}

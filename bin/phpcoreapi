@@ -1,0 +1,48 @@
+#!/usr/bin/env php
+<?php
+require __DIR__ . '/../vendor/autoload.php';
+
+use PhpCore\Command\CreateProject;
+use PhpCore\Command\ServeProject;
+use PhpCore\Command\BuildProject;
+use PhpCore\Command\MakeController;
+use PhpCore\Command\AddLibrary;
+
+$command = $argv[1] ?? null;
+
+switch ($command) {
+    case 'create-project':
+        $name = $argv[2] ?? null;
+        (new CreateProject())->handle($name);
+        break;
+
+    case 'serve':
+        $port = $argv[2] ?? 8080;
+        (new ServeProject())->handle((int)$port);
+        break;
+
+    case 'build':
+        (new BuildProject())->handle();
+        break;
+
+    case 'make:controller':
+        $controller = $argv[2] ?? null;
+        if (!$controller) { echo "Controller name required\n"; exit; }
+        (new MakeController())->handle($controller);
+        break;
+
+    case 'add':
+        $lib = $argv[2] ?? null;
+        if (!$lib) { echo "Library name required\n"; exit; }
+        (new AddLibrary())->handle($lib);
+        break;
+
+    default:
+        echo "Available commands:\n";
+        echo "  create-project [name]\n";
+        echo "  serve [port]\n";
+        echo "  build\n";
+        echo "  make:controller <Name>\n";
+        echo "  add <library-name>\n";
+        break;
+}

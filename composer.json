@@ -1,0 +1,21 @@
+{
+  "name": "phpcoreapi/phpcoreapi",
+  "description": "PHP Core API CLI to create PHP API projects with routing, controllers, and database setup",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Team XD",
+      "email": "teamxdorg@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "PhpCore\\": "src/"
+    }
+  },
+  "bin": ["bin/phpcoreapi"],
+  "require": {
+    "php": ">=8.0"
+  }
+}

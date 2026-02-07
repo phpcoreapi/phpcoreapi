@@ -1,0 +1,53 @@
+<?php
+namespace App\Core;
+
+class Router
+{
+    private array $get = [];
+    private array $post = [];
+
+    public function get(string $uri, callable|array $action)
+    {
+        $this->get[$uri] = $action;
+    }
+
+    public function post(string $uri, callable|array $action)
+    {
+        $this->post[$uri] = $action;
+    }
+
+    public function group(string $base, callable $callback)
+    {
+        $groupRouter = new class($this, $base) {
+            private $router;
+            private $prefix;
+            public function __construct($router, $prefix){ $this->router=$router; $this->prefix=$prefix; }
+            public function get($uri, $action){ $this->router->get($this->prefix.$uri, $action); }
+            public function post($uri, $action){ $this->router->post($this->prefix.$uri, $action); }
+        };
+
+        $callback($groupRouter);
+    }
+
+    public function dispatch()
+    {
+        $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $routes = $_SERVER['REQUEST_METHOD']==='POST'? $this->post : $this->get;
+
+        if(!isset($routes[$uri])){
+            http_response_code(404);
+            echo json_encode(['error'=>'Not Found']);
+            return;
+        }
+
+        $action = $routes[$uri];
+
+        if(is_array($action)){
+            [$class,$method]=$action;
+            $controller=new $class();
+            $controller->$method();
+        } else {
+            $action();
+        }
+    }
+}

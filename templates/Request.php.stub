@@ -1,0 +1,27 @@
+<?php
+namespace App\Core;
+
+class Request
+{
+    public static function JsonBody(): string
+    {
+        $raw = file_get_contents('php://input');
+        return $raw ?: '{}';
+    }
+
+    public static function JsonData(): array
+    {
+        $data = json_decode(self::JsonBody(), true);
+        return is_array($data) ? $data : [];
+    }
+
+    public static function GetData(): array
+    {
+        return $_GET;
+    }
+
+    public static function PostData(): array
+    {
+        return $_POST;
+    }
+}
