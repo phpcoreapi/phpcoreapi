@@ -13,7 +13,9 @@ require __DIR__ . '/../vendor/autoload.php';
 use App\Core\Router;
 
 $router = new Router();
-
 require __DIR__ . '/../app/Routes/web.php';
 
-$router->dispatch();
+if (!$router->dispatch()) {
+    http_response_code(404);
+    exit;
+}
