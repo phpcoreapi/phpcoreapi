@@ -24,6 +24,8 @@ class CreateProject
         $selectedOption = $this->select("Choose template mode:", $options);
         $template = ($selectedOption === 'with debug panel') ? 'debug-panel' : 'normal';
 
+        $runServer = $this->select("Run the server immediately after creating?", ['yes', 'no']);
+
         $dirs = ['app/Controllers', 'app/Core', 'app/Routes', 'public'];
         if ($template === 'debug-panel') {
             $dirs[] = 'app/Views';
@@ -110,8 +112,14 @@ class CreateProject
         exec('composer install');
 
         echo "\n\e[32m✔\e[0m Project \e[1m$name\e[0m created successfully with \e[36m$template\e[0m template.\n";
-        echo "  cd $name\n";
-        echo "  php core serve\n\n";
+
+        if ($runServer === 'yes') {
+            echo "\n\e[36mstarting server...\e[0m\n";
+            passthru("phpcoreapi serve");
+        } else {
+            echo "  cd $name\n";
+            echo "  phpcoreapi serve\n\n";
+        }
     }
 
     private function select(string $prompt, array $options): string
