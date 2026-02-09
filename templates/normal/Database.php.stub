@@ -1,0 +1,22 @@
+<?php
+namespace App\Core;
+
+class Database
+{
+    private static ?\mysqli $connection = null;
+
+    public static function connect(): \mysqli
+    {
+        if (self::$connection === null) {
+            $dbHost = '127.0.0.1';
+            $dbUser = 'root';
+            $dbPass = '';
+            $dbName = 'mydatabase';
+
+            $conn = new \mysqli($dbHost, $dbUser, $dbPass, $dbName);
+            if ($conn->connect_error) die('Database connection failed: '.$conn->connect_error);
+            self::$connection = $conn;
+        }
+        return self::$connection;
+    }
+}

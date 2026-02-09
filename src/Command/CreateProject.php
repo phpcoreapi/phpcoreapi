@@ -20,7 +20,16 @@ class CreateProject
             exit;
         }
 
-        foreach (['app/Controllers', 'app/Core', 'app/Routes', 'public'] as $d) {
+        $options = ['normal', 'with debug panel'];
+        $selectedOption = $this->select("Choose template mode:", $options);
+        $template = ($selectedOption === 'with debug panel') ? 'debug-panel' : 'normal';
+
+        $dirs = ['app/Controllers', 'app/Core', 'app/Routes', 'public'];
+        if ($template === 'debug-panel') {
+            $dirs[] = 'app/Views';
+        }
+
+        foreach ($dirs as $d) {
             mkdir("$name/$d", 0777, true);
         }
 
@@ -51,8 +60,13 @@ class CreateProject
             'phpcoreapi_setup.md'
         ];
 
+        if ($template === 'debug-panel') {
+            $files[] = 'ErrorHandler.php';
+            $files[] = 'error_page.php';
+        }
+
         foreach ($files as $f) {
-            $stub = __DIR__ . '/../../templates/' . $f . '.stub';
+            $stub = __DIR__ . '/../../templates/' . $template . '/' . $f . '.stub';
             switch ($f) {
                 case 'index.php':
                     $dest = "$name/public/index.php";
@@ -72,6 +86,12 @@ class CreateProject
                 case 'Router.php':
                     $dest = "$name/app/Core/Router.php";
                     break;
+                case 'ErrorHandler.php':
+                    $dest = "$name/app/Core/ErrorHandler.php";
+                    break;
+                case 'error_page.php':
+                    $dest = "$name/app/Views/error_page.php";
+                    break;
                 case 'phpcoreapi_setup.md':
                     $dest = "$name/README.md";
                     break;
@@ -80,12 +100,81 @@ class CreateProject
                     break;
             }
 
-            copy($stub, $dest);
+            if (file_exists($stub)) {
+                copy($stub, $dest);
+            }
         }
 
         chdir($name);
         exec('composer install');
 
-        echo "Project '$name' created. Set web root to /public\n";
+        echo "\nProject '$name' created with '$template' template. Set web root to /public\n";
+    }
+
+    private function select(string $prompt, array $options): string
+    {
+        $selected = 0;
+        $count = count($options);
+
+        // Hide cursor
+        echo "\e[?25l";
+
+        $isWin = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+        $hasStty = false;
+        if (!$isWin) {
+            exec('stty 2>&1', $output, $exitCode);
+            $hasStty = ($exitCode === 0);
+        }
+
+        while (true) {
+            echo "\r\e[K$prompt ";
+            foreach ($options as $i => $option) {
+                if ($i === $selected) {
+                    echo "\e[1;32m> $option\e[0m  ";
+                } else {
+                    echo "  $option  ";
+                }
+            }
+
+            if ($hasStty) {
+                system('stty -icanon -echo');
+                $key = ord(fread(STDIN, 1));
+                if ($key === 27) {
+                    $next = ord(fread(STDIN, 1));
+                    if ($next === 91) {
+                        $dir = ord(fread(STDIN, 1));
+                        if ($dir === 68 || $dir === 65) { // Left/Up
+                            $selected = ($selected - 1 + $count) % $count;
+                        } elseif ($dir === 67 || $dir === 66) { // Right/Down
+                            $selected = ($selected + 1) % $count;
+                        }
+                    }
+                } elseif ($key === 10) {
+                    system('stty icanon echo');
+                    echo "\n";
+                    break;
+                }
+                system('stty icanon echo');
+            } else {
+                // Fallback for Windows or systems without stty
+                echo "\n(Use 1 and 2 to switch, Enter to select current): ";
+                $input = trim(fgets(STDIN));
+                if ($input === '1') {
+                    $selected = 0;
+                } elseif ($input === '2') {
+                    $selected = 1;
+                } elseif ($input === '') {
+                    echo "\n";
+                    break;
+                }
+                // Clear lines
+                echo "\e[A\e[K\e[A\e[K";
+            }
+        }
+
+        // Show cursor
+        echo "\e[?25h";
+
+        return $options[$selected];
     }
 }

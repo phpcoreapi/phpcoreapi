@@ -1,0 +1,88 @@
+<?php
+namespace App\Core;
+
+class ErrorHandler
+{
+    public static function register()
+    {
+        error_reporting(E_ALL);
+        ini_set('display_errors', 0);
+        set_exception_handler([self::class, 'handleException']);
+        set_error_handler([self::class, 'handleError']);
+        register_shutdown_function([self::class, 'handleShutdown']);
+    }
+
+    public static function handleException(\Throwable $exception)
+    {
+        self::render($exception);
+    }
+
+    public static function handleError($level, $message, $file, $line)
+    {
+        if (error_reporting() & $level) {
+            throw new \ErrorException($message, 0, $level, $file, $line);
+        }
+    }
+
+    public static function handleShutdown()
+    {
+        $error = error_get_last();
+        if ($error && self::isFatal($error['type'])) {
+            self::render(new \ErrorException($error['message'], 0, $error['type'], $error['file'], $error['line']));
+        }
+    }
+
+    private static function isFatal($type)
+    {
+        return in_array($type, [E_COMPILE_ERROR, E_CORE_ERROR, E_ERROR, E_PARSE]);
+    }
+
+    private static function render(\Throwable $exception)
+    {
+        if (ob_get_length())
+            ob_clean();
+
+        if (!headers_sent()) {
+            header_remove("Content-Type");
+            header("Content-Type: text/html; charset=UTF-8");
+            $statusCode = ($exception->getCode() >= 400 && $exception->getCode() < 600) ? $exception->getCode() : 500;
+            http_response_code($statusCode);
+        }
+
+        $title = get_class($exception);
+        $message = $exception->getMessage();
+        $file = $exception->getFile();
+        $line = $exception->getLine();
+        $trace = $exception->getTrace();
+
+        if (strpos($file, 'Router.php') !== false) {
+            foreach ($trace as $item) {
+                if (isset($item['file']) && strpos($item['file'], 'Router.php') === false) {
+                    $file = $item['file'];
+                    $line = $item['line'];
+                    break;
+                }
+            }
+        }
+
+        $snippet = self::getCodeSnippet($file, $line);
+
+        include __DIR__ . '/../Views/error_page.php';
+        exit;
+    }
+
+    private static function getCodeSnippet($file, $line, $radius = 6)
+    {
+        if (!file_exists($file))
+            return [];
+        $lines = file($file);
+        $totalLines = count($lines);
+        $start = max(0, $line - $radius - 1);
+        $end = min($totalLines, $line + $radius);
+        $snippet = [];
+        for ($i = $start; $i < $end; $i++) {
+            $snippet[$i + 1] = $lines[$i];
+        }
+        return $snippet;
+    }
+}

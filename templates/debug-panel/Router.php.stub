@@ -1,0 +1,110 @@
+<?php
+namespace App\Core;
+
+class Router
+{
+    private array $get = [];
+    private array $post = [];
+    private array $put = [];
+    private array $delete = [];
+    private array $patch = [];
+    private array $options = [];
+
+    private function addRoute(string $method, string $uri, $action)
+    {
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
+        $caller = $trace[1];
+        if (isset($trace[2]) && (strpos($trace[1]['file'] ?? '', 'Router.php') !== false)) {
+            $caller = $trace[2];
+        }
+
+        $this->{strtolower($method)}[$uri] = [
+            'action' => $action,
+            'file' => $caller['file'] ?? 'Unknown',
+            'line' => $caller['line'] ?? 0,
+            'method' => $method,
+            'uri' => $uri
+        ];
+    }
+
+    public function get(string $uri, callable|array $action) { $this->addRoute('GET', $uri, $action); }
+    public function post(string $uri, callable|array $action) { $this->addRoute('POST', $uri, $action); }
+    public function put(string $uri, callable|array $action) { $this->addRoute('PUT', $uri, $action); }
+    public function delete(string $uri, callable|array $action) { $this->addRoute('DELETE', $uri, $action); }
+    public function patch(string $uri, callable|array $action) { $this->addRoute('PATCH', $uri, $action); }
+    public function options(string $uri, callable|array $action) { $this->addRoute('OPTIONS', $uri, $action); }
+
+    public function all(string $uri, callable|array $action)
+    {
+        foreach (['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'] as $m) {
+            $this->addRoute($m, $uri, $action);
+        }
+    }
+
+    public function group(string $base, callable $callback)
+    {
+        $groupRouter = new class($this, $base) {
+            private $router;
+            private $prefix;
+            public function __construct($router, $prefix){ $this->router = $router; $this->prefix = $prefix; }
+            public function get($uri, $action){ $this->router->get($this->prefix.$uri, $action); }
+            public function post($uri, $action){ $this->router->post($this->prefix.$uri, $action); }
+            public function put($uri, $action){ $this->router->put($this->prefix.$uri, $action); }
+            public function delete($uri, $action){ $this->router->delete($this->prefix.$uri, $action); }
+            public function patch($uri, $action){ $this->router->patch($this->prefix.$uri, $action); }
+            public function options($uri, $action){ $this->router->options($this->prefix.$uri, $action); }
+            public function all($uri, $action){ $this->router->all($this->prefix.$uri, $action); }
+        };
+        $callback($groupRouter);
+    }
+
+    public function dispatch(): bool
+    {
+        $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $method = $_SERVER['REQUEST_METHOD'];
+        $routes = match ($method) {
+            'POST' => $this->post,
+            'PUT' => $this->put,
+            'DELETE' => $this->delete,
+            'PATCH' => $this->patch,
+            'OPTIONS' => $this->options,
+            default => $this->get,
+        };
+
+        if (!isset($routes[$uri])) {
+            return false;
+        }
+
+        $route = $routes[$uri];
+        $action = $route['action'];
+
+        try {
+            if (is_array($action)) {
+                [$class, $methodName] = $action;
+
+                if (!class_exists($class)) {
+                    throw new \ErrorException("Controller class '{$class}' not found.", 0, E_USER_ERROR, $route['file'], $route['line']);
+                }
+
+                $controller = new $class();
+
+                if (!method_exists($controller, $methodName)) {
+                    throw new \ErrorException(
+                        "Method '{$methodName}' not found in controller '{$class}' for route [{$route['method']}] '{$route['uri']}'",
+                        0, E_USER_ERROR, $route['file'], $route['line']
+                    );
+                }
+
+                $controller->$methodName();
+            } elseif (is_callable($action)) {
+                $action();
+            } else {
+                throw new \ErrorException("The action for route '{$uri}' is not callable.", 0, E_USER_ERROR, $route['file'], $route['line']);
+            }
+        } catch (\Throwable $e) {
+            throw $e;
+        }
+
+        return true;
+    }
+}

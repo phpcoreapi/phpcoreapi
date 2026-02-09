@@ -1,0 +1,19 @@
+<?php
+
+use App\Controllers\HealthController;
+use App\Controllers\UserController;
+use App\Controllers\Auth\AuthController;
+
+// Base route groups
+$router->group('/api', function($r){
+    $r->get('/health',[HealthController::class,'index']);
+    $r->post('/user/create',[UserController::class,'store']);
+});
+
+$router->group('/auth', function($r){
+    $r->post('/login',[AuthController::class,'login']);
+    $r->post('/register',[AuthController::class,'register']);
+});
+
+// Independent routes
+$router->get('/status',[HealthController::class,'index']);

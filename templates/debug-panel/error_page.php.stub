@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars($title) ?>: <?= htmlspecialchars($message) ?></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=SF+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --xcode-bg: #292a30;
+            --xcode-text: #ffffff;
+            --xcode-keyword: #ff7ab2;
+            --xcode-string: #ff8170;
+            --xcode-number: #d0bf69;
+            --xcode-comment: #6c7986;
+            --xcode-func: #6be5fd;
+            --xcode-line-num: #5c6370;
+            --xcode-error-bg: #4b1818;
+            --xcode-error-border: #ff3b30;
+        }
+        body {
+            background-color: #1e1f24;
+            color: var(--xcode-text);
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .snippet-container {
+            position: relative;
+            background-color: var(--xcode-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .snippet-fade-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(to bottom, var(--xcode-bg), transparent);
+            z-index: 10;
+            pointer-events: none;
+        }
+        .snippet-fade-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(to top, var(--xcode-bg), transparent);
+            z-index: 10;
+            pointer-events: none;
+        }
+        .code-block {
+            padding: 24px 0;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        .code-line {
+            display: flex;
+            padding: 0 24px;
+            position: relative;
+        }
+        .code-line.error-highlight {
+            background-color: var(--xcode-error-bg);
+            z-index: 5;
+        }
+        .code-line.error-highlight::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: var(--xcode-error-border);
+        }
+        .line-number {
+            width: 40px;
+            text-align: right;
+            padding-right: 20px;
+            color: var(--xcode-line-num);
+            user-select: none;
+        }
+        .line-content {
+            white-space: pre;
+            color: #d1d1d1;
+        }
+        .stack-item {
+            border-left: 2px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+        }
+        .stack-item:hover {
+            border-left-color: var(--xcode-func);
+            background: rgba(255, 255, 255, 0.02);
+        }
+    </style>
+</head>
+<body class="selection:bg-blue-500/30">
+    <div class="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-pink-600 z-50"></div>
+    <div class="max-w-6xl mx-auto px-6 py-12">
+        <header class="mb-12">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="text-xs font-bold uppercase tracking-widest text-[#ff3b30] px-2 py-1 bg-red-500/10 rounded">
+                    <?= htmlspecialchars($title) ?>
+                </span>
+                <span class="text-slate-500 text-xs font-medium">Build Failure</span>
+            </div>
+            <h1 class="text-3xl lg:text-5xl font-bold mb-6 text-white leading-tight">
+                <?= htmlspecialchars($message) ?>
+            </h1>
+            <div class="flex flex-wrap items-center gap-3 text-slate-400 font-mono text-sm bg-black/20 p-4 rounded-xl border border-white/5">
+                <span class="text-blue-400"><?= htmlspecialchars($file) ?></span>
+                <span class="text-slate-600">:</span>
+                <span class="text-red-500 font-bold"><?= $line ?></span>
+            </div>
+        </header>
+        <div class="space-y-12">
+            <section>
+                <div class="snippet-container">
+                    <div class="snippet-fade-top"></div>
+                    <div class="px-6 py-3 border-b border-white/5 bg-white/5 flex items-center justify-between">
+                        <div class="flex gap-1.5">
+                            <div class="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
+                        </div>
+                        <span class="text-xs text-slate-500 font-mono uppercase tracking-widest">Editor Snippet</span>
+                    </div>
+                    <div class="code-block">
+                        <?php foreach ($snippet as $num => $content): ?>
+                            <div class="code-line <?= $num == $line ? 'error-highlight' : '' ?>">
+                                <div class="line-number"><?= $num ?></div>
+                                <div class="line-content"><?= htmlspecialchars($content) ?></div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="snippet-fade-bottom"></div>
+                </div>
+            </section>
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2">
+                    <h2 class="text-lg font-bold mb-6 flex items-center gap-2">
+                        <span class="w-1.5 h-4 bg-blue-500 rounded-full"></span>
+                        Stack Trace
+                    </h2>
+                    <div class="space-y-4">
+                        <?php foreach (array_slice($trace, 0, 15) as $index => $item): 
+                            if (isset($item['file']) && strpos($item['file'], 'Router.php') !== false) continue;
+                        ?>
+                            <div class="stack-item p-4 rounded-lg bg-black/10">
+                                <div class="text-xs font-bold text-slate-500 mb-1 uppercase tracking-tighter">#<?= $index ?></div>
+                                <div class="text-[#6be5fd] font-mono text-sm mb-2">
+                                    <?= htmlspecialchars((isset($item['class']) ? $item['class'] . $item['type'] : '') . $item['function']) ?>(...)
+                                </div>
+                                <?php if (isset($item['file'])): ?>
+                                    <div class="text-slate-500 text-xs font-mono truncate">
+                                        <?= htmlspecialchars($item['file']) ?> : <span class="text-red-400"><?= $item['line'] ?></span>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <h3 class="text-lg font-bold flex items-center gap-2">
+                        <span class="w-1.5 h-4 bg-orange-500 rounded-full"></span>
+                        Environment
+                    </h3>
+                    <div class="bg-black/20 rounded-2xl p-6 border border-white/5 space-y-4">
+                        <div>
+                            <div class="text-[10px] uppercase text-slate-500 font-bold mb-1">Request</div>
+                            <div class="text-xs font-mono text-blue-300"><?= $_SERVER['REQUEST_METHOD'] ?> <?= $_SERVER['REQUEST_URI'] ?></div>
+                        </div>
+                        <div class="h-px bg-white/5"></div>
+                        <div>
+                            <div class="text-[10px] uppercase text-slate-500 font-bold mb-1">PHP Version</div>
+                            <div class="text-xs font-mono text-white"><?= PHP_VERSION ?></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+</html>
