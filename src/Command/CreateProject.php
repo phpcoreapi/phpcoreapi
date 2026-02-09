@@ -6,17 +6,17 @@ class CreateProject
     public function handle(?string $name = null)
     {
         if (!$name) {
-            echo "Enter project name: ";
+            echo "\e[36m?\e[0m \e[1mEnter project name:\e[0m \e[2m›\e[0m ";
             $name = trim(fgets(STDIN));
         }
 
         if (!$name) {
-            echo "Project name cannot be empty\n";
+            echo "\e[31mProject name cannot be empty\e[0m\n";
             exit;
         }
 
         if (is_dir($name)) {
-            echo "Directory already exists\n";
+            echo "\e[31mDirectory '$name' already exists\e[0m\n";
             exit;
         }
 
@@ -106,75 +106,63 @@ class CreateProject
         }
 
         chdir($name);
+        echo "\n\e[36minstalling dependencies...\e[0m\n";
         exec('composer install');
 
-        echo "\nProject '$name' created with '$template' template. Set web root to /public\n";
+        echo "\n\e[32m✔\e[0m Project \e[1m$name\e[0m created successfully with \e[36m$template\e[0m template.\n";
+        echo "  cd $name\n";
+        echo "  php core serve\n\n";
     }
 
     private function select(string $prompt, array $options): string
     {
         $selected = 0;
         $count = count($options);
-
-        // Hide cursor
         echo "\e[?25l";
+        while (true) {
+            echo "\r\e[J\e[36m?\e[0m \e[1m$prompt\e[0m \e[2m(Use arrow keys)\e[0m\n";
+            foreach ($options as $i => $option) {
+                echo ($i === $selected ? "\e[36m❯ $option\e[0m" : "  $option") . "\n";
+            }
+            $key = $this->readKey();
+            if ($key === 'UP')
+                $selected = ($selected - 1 + $count) % $count;
+            else if ($key === 'DOWN')
+                $selected = ($selected + 1) % $count;
+            else if ($key === 'ENTER') {
+                echo "\e[" . ($count + 1) . "A\r\e[J";
+                echo "\e[32m✔\e[0m \e[1m$prompt\e[0m \e[36m" . $options[$selected] . "\e[0m\n";
+                echo "\e[?25h";
+                return $options[$selected];
+            }
+            echo "\e[" . ($count + 1) . "A";
+        }
+    }
 
-        $isWin = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        $hasStty = false;
-        if (!$isWin) {
+    private function readKey(): string
+    {
+        static $hasStty = null;
+        if ($hasStty === null) {
             exec('stty 2>&1', $output, $exitCode);
             $hasStty = ($exitCode === 0);
         }
-
-        while (true) {
-            echo "\r\e[K$prompt ";
-            foreach ($options as $i => $option) {
-                if ($i === $selected) {
-                    echo "\e[1;32m> $option\e[0m  ";
-                } else {
-                    echo "  $option  ";
-                }
+        if ($hasStty) {
+            system('stty -icanon -echo');
+            $c = fread(STDIN, 1);
+            if (ord($c) === 27) {
+                $c .= fread(STDIN, 2);
             }
-
-            if ($hasStty) {
-                system('stty -icanon -echo');
-                $key = ord(fread(STDIN, 1));
-                if ($key === 27) {
-                    $next = ord(fread(STDIN, 1));
-                    if ($next === 91) {
-                        $dir = ord(fread(STDIN, 1));
-                        if ($dir === 68 || $dir === 65) { // Left/Up
-                            $selected = ($selected - 1 + $count) % $count;
-                        } elseif ($dir === 67 || $dir === 66) { // Right/Down
-                            $selected = ($selected + 1) % $count;
-                        }
-                    }
-                } elseif ($key === 10) {
-                    system('stty icanon echo');
-                    echo "\n";
-                    break;
-                }
-                system('stty icanon echo');
-            } else {
-                // Fallback for Windows or systems without stty
-                echo "\n(Use 1 and 2 to switch, Enter to select current): ";
-                $input = trim(fgets(STDIN));
-                if ($input === '1') {
-                    $selected = 0;
-                } elseif ($input === '2') {
-                    $selected = 1;
-                } elseif ($input === '') {
-                    echo "\n";
-                    break;
-                }
-                // Clear lines
-                echo "\e[A\e[K\e[A\e[K";
-            }
+            system('stty icanon echo');
+            if ($c === "\e[A")
+                return 'UP';
+            if ($c === "\e[B")
+                return 'DOWN';
+            if ($c === "\n" || $c === "\r")
+                return 'ENTER';
+        } else if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $cmd = "powershell -Command \"\$k=[Console]::ReadKey(\$true);if(\$k.Key -eq 'UpArrow'){'UP'}elseif(\$k.Key -eq 'DownArrow'){'DOWN'}elseif(\$k.Key -eq 'Enter'){'ENTER'}\"";
+            return trim(shell_exec($cmd) ?? '');
         }
-
-        // Show cursor
-        echo "\e[?25h";
-
-        return $options[$selected];
+        return '';
     }
 }

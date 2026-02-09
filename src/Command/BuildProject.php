@@ -11,7 +11,8 @@ class BuildProject
         }
 
         $dist = 'dist';
-        if (is_dir($dist)) $this->delete($dist);
+        if (is_dir($dist))
+            $this->delete($dist);
         mkdir($dist);
 
         $items = ['app', 'public', 'composer.json'];
@@ -31,7 +32,8 @@ class BuildProject
         if (is_dir($src)) {
             mkdir($dst, 0777, true);
             foreach (scandir($src) as $f) {
-                if ($f === '.' || $f === '..') continue;
+                if ($f === '.' || $f === '..')
+                    continue;
                 $this->copyRecursive("$src/$f", "$dst/$f");
             }
         } else {
@@ -42,7 +44,8 @@ class BuildProject
     private function delete($dir)
     {
         foreach (scandir($dir) as $f) {
-            if ($f === '.' || $f === '..') continue;
+            if ($f === '.' || $f === '..')
+                continue;
             $p = "$dir/$f";
             is_dir($p) ? $this->delete($p) : unlink($p);
         }
