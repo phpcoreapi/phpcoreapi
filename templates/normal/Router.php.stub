@@ -71,6 +71,7 @@ class Router
     {
         $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $method = $_SERVER['REQUEST_METHOD'];
+        
         $routes = match ($method) {
             'POST' => $this->post,
             'PUT' => $this->put,
@@ -86,7 +87,21 @@ class Router
 
         if (is_array($action)) {
             [$class, $method] = $action;
+
+            if (!class_exists($class)) {
+                http_response_code(500);
+                echo json_encode(['error' => "Controller not found for the route $uri"]);
+                return true;
+            }
+
             $controller = new $class();
+
+            if (!is_callable([$controller, $method])) {
+                http_response_code(500);
+                echo json_encode(['error' => "Method $method not found in controller $class for the route $uri"]);
+                return true;
+            }
+
             $controller->$method();
         } else {
             $action();
